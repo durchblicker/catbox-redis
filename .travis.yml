@@ -12,4 +12,6 @@ services:
 before_script:
   - redis-server --port 6378 --requirepass secret &
   - redis-server --port 6377 --unixsocket /tmp/redis.sock &
+  - redis-sentinel test/sentinel.conf &
+  - redis-sentinel test/sentinel2.conf &
   - sleep 2

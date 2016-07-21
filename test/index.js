@@ -7,7 +7,7 @@ const Code = require('code');
 const Lab = require('lab');
 const Catbox = require('catbox');
 const Redis = require('..');
-const RedisClient = require('redis');
+const RedisClient = require('ioredis');
 
 
 // Declare internals
@@ -493,10 +493,28 @@ describe('Redis', () => {
 
             redis.start(() => {});
 
-            // redis.client.selected_db gets updated after the callback
             setTimeout(() => {
 
-                expect(redis.client.selected_db).to.equal(1);
+                expect(redis.client.condition.select).to.equal(1);
+                done();
+            }, 10);
+        });
+
+        it('sends select command when db is provided', (done) => {
+
+            const options = {
+                host: '127.0.0.1',
+                port: 6379,
+                db: 1
+            };
+
+            const redis = new Redis(options);
+
+            redis.start(() => {});
+
+            setTimeout(() => {
+
+                expect(redis.client.condition.select).to.equal(1);
                 done();
             }, 10);
         });
@@ -514,8 +532,10 @@ describe('Redis', () => {
                 expect(err).to.not.exist();
                 const client = redis.client;
                 expect(client).to.exist();
-                expect(client.connected).to.equal(true);
-                expect(client.address).to.equal(options.socket);
+                expect(client.connector.connecting).to.equal(true);
+                // Socket-path is only stored in options objects when using ioredis,
+                // so checking for the port, the redis server using the socket is listening on
+                expect(client.serverInfo.tcp_port).to.equal('6377');
                 done();
             });
         });
@@ -538,6 +558,46 @@ describe('Redis', () => {
                 expect(redis.client).to.exist();
                 done();
             });
+        });
+
+        it('sets client to when the connection via sentinel succeeds', (done) => {
+
+            const options = {
+                sentinels: [
+                    {
+                        host: '127.0.0.1',
+                        port: 26379
+                    }
+                ],
+                name: 'mymaster'
+            };
+
+            const redis = new Redis(options);
+
+            redis.start((err) => {
+
+                expect(err).to.not.exist();
+                expect(redis.client).to.exist();
+                done();
+            });
+        });
+
+        it('success when auth is correct for sentinel', (done) => {
+
+            const options = {
+                sentinels: [
+                    {
+                        host: '127.0.0.1',
+                        port: 26378
+                    }
+                ],
+                name: 'mymaster',
+                password: 'secret'
+            };
+
+            const redis = new Redis(options);
+
+            redis.start(done);
         });
     });
 
