@@ -28,6 +28,10 @@ The test suite expects:
 See [.travis.yml](./.travis.yml)
 
 ```sh
-redis-server&
+redis-server &
+redis-server --port 6378 --requirepass secret &
+redis-server --port 6377 --unixsocket /tmp/redis.sock &
+redis-sentinel test/sentinel.conf &
+redis-sentinel test/sentinel2.conf &
 npm test
 ```
